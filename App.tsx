@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import Header from './components/Header';
 import MusicCard from './components/MusicCard';
 import { Song } from './types';
@@ -8,21 +8,28 @@ import { fetchMusicRecommendations } from './services/gemini';
 const App: React.FC = () => {
   const [theme, setTheme] = useState('');
   const [recommendations, setRecommendations] = useState<Song[]>([]);
+  const [sources, setSources] = useState<{title: string, uri: string}[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
 
   const getRecommendations = useCallback(async (selectedTheme: string) => {
-    if (!selectedTheme.trim()) return;
+    const trimmedTheme = selectedTheme.trim();
+    if (!trimmedTheme) return;
+
     setLoading(true);
     setError(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     try {
-      const data = await fetchMusicRecommendations(selectedTheme);
+      const { recommendations: data, sources: refSources } = await fetchMusicRecommendations(trimmedTheme);
       setRecommendations(data);
+      setSources(refSources);
       setHasStarted(true);
+      setTimeout(() => {
+        window.scrollTo({ top: window.innerHeight * 0.1, behavior: 'smooth' });
+      }, 100);
     } catch (err) {
-      setError('음악 목록을 불러오는데 실패했습니다. 다시 시도해 주세요.');
+      console.error(err);
+      setError('매거진 발행 중 오류가 발생했습니다. 테마를 조금 더 구체적으로 입력해 보세요.');
     } finally {
       setLoading(false);
     }
@@ -36,26 +43,46 @@ const App: React.FC = () => {
   const featuredSong = recommendations[0];
   const otherSongs = recommendations.slice(1);
 
+  // British Date Formatting Helper
+  const getBritishDate = (date: Date) => {
+    const day = date.getDate();
+    const month = date.toLocaleString('en-GB', { month: 'long' });
+    const year = date.getFullYear();
+    
+    const getOrdinal = (n: number) => {
+      if (n > 3 && n < 21) return 'th';
+      switch (n % 10) {
+        case 1: return "st";
+        case 2: return "nd";
+        case 3: return "rd";
+        default: return "th";
+      }
+    };
+    
+    return `${day}${getOrdinal(day)} of ${month} ${year}`;
+  };
+
+  const currentIssuance = getBritishDate(new Date());
+
   return (
-    <div className="min-h-screen pb-32">
+    <div className="min-h-screen overflow-x-hidden flex flex-col selection:bg-black selection:text-white">
       <Header />
       
-      <main className="max-w-[1400px] mx-auto px-6 md:px-12">
+      <main className="flex-grow max-w-[1200px] w-full mx-auto px-6 md:px-12">
         {/* Search & Intro Section */}
-        <section className="mt-12 mb-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          <div className="lg:col-span-4">
-            <h2 className="text-3xl font-display mb-4 uppercase tracking-tight">The Editorial Note</h2>
-            <p className="text-sm leading-relaxed text-gray-600 font-light mb-8">
-              출퇴근의 지루함은 당신의 취향을 방해하는 가장 큰 적입니다. 
-              오늘 우리는 당신이 입력한 영감을 바탕으로, 아스팔트 위의 시간을 예술로 바꿔줄 7개의 트랙을 선정했습니다. 
-              커피 한 잔과 함께, 음악의 깊이를 느껴보세요.
+        <section className="mt-8 mb-16 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          <div className="lg:col-span-5 border-l-2 border-black pl-8 order-1">
+            <h2 className="text-lg font-black mb-2 uppercase tracking-[0.3em]">Editorial</h2>
+            <p className="text-xs leading-relaxed text-gray-500 font-light mb-6">
+              오늘 당신의 출근길을 위해, 우리는 7개의 트랙을 골랐습니다.
+              도시의 소음을 지우고 오직 비트와 선율에 집중해 보세요.
             </p>
             <div className="flex gap-2 flex-wrap">
-              {['City Pop', 'Midnight', 'Jazz', 'Rainy Day', 'Morning Drive'].map((tag) => (
+              {['City Pop', 'Midnight', 'Jazz', 'Rainy', 'K-Indie'].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => { setTheme(tag); getRecommendations(tag); }}
-                  className="text-[9px] font-bold border border-black/20 px-3 py-1 hover:border-black hover:bg-black hover:text-white transition-all uppercase tracking-widest"
+                  className="text-[8px] font-black border border-black/20 px-3 py-1.5 hover:bg-black hover:text-white transition-all uppercase tracking-widest active:scale-95"
                 >
                   {tag}
                 </button>
@@ -63,120 +90,86 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="lg:col-span-8">
-            <form onSubmit={handleSearch} className="relative group">
-              <input
-                type="text"
-                value={theme}
-                onChange={(e) => setTheme(e.target.value)}
-                placeholder="현재의 무드나 테마를 입력하세요..."
-                className="w-full bg-transparent border-b-[3px] border-black py-6 px-0 text-3xl md:text-5xl font-display focus:outline-none placeholder:text-gray-400 transition-all focus:border-gray-400"
-              />
-              <button 
-                type="submit"
-                disabled={loading}
-                className="absolute right-0 bottom-8 font-black uppercase tracking-[0.4em] text-xs md:text-sm hover:translate-x-2 transition-transform disabled:opacity-30"
-              >
-                Assemble Content →
-              </button>
+          <div className="lg:col-span-7 order-2">
+            <form onSubmit={handleSearch} className="relative w-full">
+              <div className="relative h-[80px] md:h-[110px] flex items-end overflow-hidden">
+                <input
+                  type="text"
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value)}
+                  placeholder="테마를 입력하세요..."
+                  className="w-full bg-transparent py-4 px-0 text-3xl md:text-5xl lg:text-6xl font-display focus:outline-none placeholder:text-gray-200 disabled:text-black leading-none"
+                  disabled={loading}
+                />
+                <button 
+                  type="submit"
+                  disabled={loading || !theme.trim()}
+                  className="absolute right-0 bottom-4 font-black uppercase tracking-[0.4em] text-[9px] md:text-[10px] hover:translate-x-2 transition-transform disabled:opacity-20 z-10"
+                >
+                  {loading ? 'Curating...' : 'Assemble →'}
+                </button>
+                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-black pointer-events-none"></div>
+              </div>
             </form>
           </div>
         </section>
 
         {loading && (
-          <div className="flex flex-col items-center justify-center py-40 border-y border-black/10">
-            <div className="w-16 h-[2px] bg-black mb-8 relative overflow-hidden">
-               <div className="absolute inset-0 bg-gray-300 -translate-x-full animate-[loading_1.5s_infinite] origin-left"></div>
-               <style>{`
-                 @keyframes loading {
-                   0% { transform: translateX(-100%); }
-                   100% { transform: translateX(100%); }
-                 }
-               `}</style>
-            </div>
-            <p className="font-display text-3xl animate-pulse">Designing your auditory experience...</p>
+          <div className="flex flex-col items-center justify-center py-24 md:py-32">
+            <div className="w-12 h-[1px] bg-black mb-8 animate-[loading_1.5s_infinite] origin-left"></div>
+            <p className="font-display text-3xl md:text-4xl tracking-tighter text-center italic animate-pulse">
+              Curating soundtrack...
+            </p>
           </div>
         )}
 
         {error && (
-          <div className="bg-black text-white p-8 font-display text-2xl text-center mb-20">
+          <div className="bg-black text-white p-10 font-display text-xl text-center mb-32">
             {error}
+            <button onClick={() => getRecommendations(theme)} className="block mx-auto mt-6 text-[9px] font-black border border-white px-6 py-2 hover:bg-white hover:text-black transition-all">Retry</button>
           </div>
         )}
 
         {!loading && hasStarted && (
-          <div className="animate-[fadeIn_1s_ease-out]">
-            <style>{`
-              @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
-              }
-            `}</style>
-            
-            {/* Recommendations Grid */}
-            {featuredSong && (
-              <MusicCard song={featuredSong} index={0} isFeatured={true} />
-            )}
+          <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            {featuredSong && <MusicCard song={featuredSong} index={0} isFeatured={true} />}
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-              <div className="lg:col-span-8 space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.5em] border-b border-black mb-6 pb-2 inline-block">The Playlist</h4>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+              <div className="lg:col-span-8 space-y-1">
+                <h4 className="text-[9px] font-black uppercase tracking-[0.5em] border-b border-black mb-6 pb-2 inline-block">The Playlist</h4>
                 {otherSongs.map((song, idx) => (
                   <MusicCard key={`${song.title}-${idx}`} song={song} index={idx + 1} />
                 ))}
               </div>
               
-              <div className="lg:col-span-4">
-                <div className="sticky top-12 border-l border-black/10 pl-8 hidden lg:block">
-                  <h4 className="font-display text-3xl mb-4 text-gray-400 uppercase tracking-tighter">Daily Digest</h4>
-                  <div className="bg-black text-white p-6 mb-8">
-                    <p className="text-[10px] uppercase tracking-widest font-bold mb-4">Editorial Recommendation</p>
-                    <p className="text-sm font-light leading-relaxed">
-                      "음악은 정적 사이의 공간입니다. 오늘의 7개 곡은 당신의 이동 경로 위에 선을 긋고 색을 입힐 것입니다."
+              <div className="lg:col-span-4 hidden lg:block">
+                <div className="sticky top-12 border-l border-black/5 pl-8 overflow-hidden">
+                  <h4 className="font-display text-2xl mb-4 text-black tracking-tighter">Editorial Note</h4>
+                  <div className="bg-black/5 p-6 mb-8 border border-black/5">
+                    <p className="text-sm font-light leading-relaxed italic text-gray-700">
+                      "음악은 우리가 어디로 가고 있는지보다, 우리가 누구인지를 더 잘 설명해 줍니다."
                     </p>
                   </div>
-                  <button 
-                    onClick={() => getRecommendations(theme)}
-                    className="w-full border-2 border-black py-4 font-black uppercase tracking-widest text-xs hover:bg-black hover:text-white transition-all"
-                  >
-                    Refresh Curation
-                  </button>
+                  <button onClick={() => getRecommendations(theme)} className="w-full border border-black py-4 font-black uppercase tracking-[0.3em] text-[8px] hover:bg-black hover:text-white transition-all">Refresh Issue</button>
                 </div>
               </div>
-            </div>
-
-            <div className="mt-40 text-center max-w-2xl mx-auto border-t border-black pt-20">
-              <span className="font-display text-2xl block mb-2 uppercase tracking-tight">Did you find your rhythm?</span>
-              <p className="text-sm text-gray-500 mb-12 font-light">
-                우리의 알고리즘이 아닌 에디토리얼 감성이 마음에 드셨다면, 
-                내일 아침 다시 방문하여 새로운 테마로 하루를 시작하세요.
-              </p>
-              <button 
-                onClick={() => getRecommendations(theme)}
-                className="inline-block bg-black text-white px-16 py-6 font-black uppercase tracking-[0.4em] text-xs hover:bg-gray-800 transition-all shadow-2xl"
-              >
-                Regenerate Issue
-              </button>
             </div>
           </div>
         )}
 
         {!hasStarted && !loading && (
-          <div className="py-20 animate-[fadeIn_1.5s_ease-out]">
-            <div className="mb-20 relative overflow-hidden group">
-              <img 
-                src="https://loremflickr.com/1400/800/urban,lifestyle,commute?random=1" 
-                alt="Editorial Lifestyle" 
-                className="w-full h-[600px] object-cover grayscale brightness-[0.4] scale-100 transition-transform duration-[2000ms] group-hover:scale-110"
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="bg-white/95 p-12 max-w-xl text-center backdrop-blur-md magazine-border shadow-2xl">
-                  <h2 className="font-display text-5xl mb-6 leading-tight uppercase tracking-tighter">Begin your musical journey here.</h2>
-                  <p className="text-sm leading-relaxed text-gray-600 font-light mb-8">
-                    당신의 테마를 위 검색창에 입력하세요. <br/>
-                    우리가 당신의 출퇴근 시간을 감각적인 순간으로 재구성해드립니다.
-                  </p>
-                  <div className="w-12 h-[1px] bg-black mx-auto"></div>
+          <div className="py-4 animate-in fade-in duration-1000">
+            <div className="relative overflow-hidden group border border-black/5 shadow-sm">
+              <img src="https://loremflickr.com/1600/600/urban,lifestyle,minimal?random=99" alt="Urban Life" className="w-full h-[300px] md:h-[380px] object-cover grayscale brightness-[0.4] transition-all duration-1000 group-hover:brightness-[0.6]" />
+              <div className="absolute inset-0 flex items-center justify-center p-6">
+                <div className="bg-white/85 p-6 md:p-8 max-w-lg text-center backdrop-blur-sm shadow-2xl magazine-border">
+                  <h2 className="font-display text-3xl md:text-5xl mb-2 leading-none uppercase tracking-tighter">Urban <span className="font-serif italic lowercase text-gray-400">rhythm.</span></h2>
+                  <p className="text-[10px] md:text-[11px] leading-relaxed text-gray-500 font-light mb-5 uppercase tracking-widest">오늘의 감성을 입력하고 매거진을 발행하세요.</p>
+                  <div className="flex justify-center items-center gap-3">
+                    <div className="w-6 h-[1px] bg-black/10"></div>
+                    <span className="text-[7px] font-black uppercase tracking-[0.4em]">Iss. {currentIssuance}</span>
+                    <div className="w-6 h-[1px] bg-black/10"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -184,17 +177,31 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="mt-40 py-12 px-6 border-t border-black/10 text-center">
-        <h2 className="font-display text-4xl mb-6 uppercase tracking-widest">Commute Rhythm</h2>
-        <div className="flex justify-center gap-8 mb-8 text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">
-          <span>About</span>
-          <span>Archive</span>
-          <span>Terms</span>
-          <span>Curated by AI</span>
+      {/* Refined Minimal Dark Footer - Neutral Grey Palette */}
+      <footer className="mt-32 py-16 px-6 bg-[#0c0c0c]">
+        <div className="max-w-[1200px] mx-auto w-full">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-10 pb-10 border-b border-white/5">
+            <div className="flex flex-col gap-2">
+              <h2 className="font-display text-4xl text-neutral-500 uppercase tracking-tighter leading-none">CR</h2>
+              <span className="text-[9px] font-black uppercase tracking-[0.4em] text-neutral-700">Commute Rhythm Media</span>
+            </div>
+            <div className="flex flex-wrap gap-x-10 gap-y-4 text-[10px] font-black uppercase tracking-[0.3em]">
+              <span className="text-neutral-600 hover:text-neutral-400 cursor-default transition-colors">Seoul, KR</span>
+              <span className="text-neutral-600 hover:text-neutral-400 cursor-default transition-colors">Digital Edition</span>
+              <span className="text-neutral-600 hover:text-neutral-400 cursor-default transition-colors">AI Curation</span>
+            </div>
+          </div>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <p className="text-[10px] font-light tracking-[0.1em] uppercase text-neutral-700">
+              © 2024 Commute Rhythm. Crafted with neutral gray scales.
+            </p>
+            <div className="flex gap-4 opacity-10">
+              <div className="w-1.5 h-1.5 bg-neutral-600 rounded-full"></div>
+              <div className="w-1.5 h-1.5 bg-neutral-600 rounded-full"></div>
+              <div className="w-1.5 h-1.5 bg-neutral-600 rounded-full"></div>
+            </div>
+          </div>
         </div>
-        <p className="text-[9px] font-black uppercase tracking-[0.1em] text-gray-300">
-          &copy; 2024 CR MEDIA GROUP. ALL RIGHTS RESERVED. PRINTED IN SEOUL.
-        </p>
       </footer>
     </div>
   );

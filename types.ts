@@ -4,6 +4,7 @@ export interface Song {
   artist: string;
   reason: string;
   origin: 'Korean' | 'International';
+  videoId: string;
 }
 
 export interface RecommendationResponse {
