@@ -1,0 +1,5 @@
+{
+  "name": "Commute Rhythm - Magazine Edition",
+  "description": "A sophisticated, magazine-style music recommendation app that suggests 7 songs (5 Korean, 2 International) daily for your commute based on your preferred theme.",
+  "requestFramePermissions": []
+}
