@@ -165,7 +165,7 @@ const App: React.FC = () => {
           <div className="py-20 animate-[fadeIn_1.5s_ease-out]">
             <div className="mb-20 relative overflow-hidden group">
               <img 
-                src="https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2000&auto=format&fit=crop" 
+                src="https://loremflickr.com/1400/800/urban,lifestyle,commute?random=1" 
                 alt="Editorial Lifestyle" 
                 className="w-full h-[600px] object-cover grayscale brightness-[0.4] scale-100 transition-transform duration-[2000ms] group-hover:scale-110"
               />
