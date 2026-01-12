@@ -10,8 +10,19 @@ interface MusicCardProps {
 
 const MusicCard: React.FC<MusicCardProps> = ({ song, index, isFeatured = false }) => {
   const youtubeLink = `https://www.youtube.com/results?search_query=${encodeURIComponent(song.artist + ' ' + song.title)}`;
-  const seed = `${song.artist}-${song.title}`.replace(/\s/g, '');
-  const imageUrl = `https://picsum.photos/seed/${seed}/${isFeatured ? '800/1000' : '400/400'}`;
+  
+  // Create a stable numeric ID for the image based on the song title and artist
+  const getStableId = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0; // Convert to 32bit integer
+    }
+    return Math.abs(hash % 1000);
+  };
+
+  const imageId = getStableId(song.title + song.artist);
+  const imageUrl = `https://picsum.photos/id/${imageId}/${isFeatured ? '800/1000' : '400/400'}`;
   
   if (isFeatured) {
     return (
@@ -27,6 +38,9 @@ const MusicCard: React.FC<MusicCardProps> = ({ song, index, isFeatured = false }
               src={imageUrl} 
               alt={song.title} 
               className="w-full h-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0 group-hover:scale-105"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `https://picsum.photos/800/1000?random=${index}`;
+              }}
             />
             <div className="absolute top-4 left-4 bg-black text-white px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
               The Cover Story
@@ -65,6 +79,9 @@ const MusicCard: React.FC<MusicCardProps> = ({ song, index, isFeatured = false }
           src={imageUrl} 
           alt={song.title} 
           className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = `https://picsum.photos/400/400?random=${index}`;
+          }}
         />
       </div>
       <div className="col-span-9 sm:col-span-10">

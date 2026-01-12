@@ -163,14 +163,14 @@ const App: React.FC = () => {
 
         {!hasStarted && !loading && (
           <div className="py-20 animate-[fadeIn_1.5s_ease-out]">
-            <div className="mb-20 relative">
+            <div className="mb-20 relative overflow-hidden group">
               <img 
-                src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2000&auto=format&fit=crop" 
-                alt="Editorial" 
-                className="w-full h-[600px] object-cover grayscale brightness-75"
+                src="https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2000&auto=format&fit=crop" 
+                alt="Editorial Lifestyle" 
+                className="w-full h-[600px] object-cover grayscale brightness-[0.4] scale-100 transition-transform duration-[2000ms] group-hover:scale-110"
               />
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="bg-white/90 p-12 max-w-xl text-center backdrop-blur-sm magazine-border">
+                <div className="bg-white/95 p-12 max-w-xl text-center backdrop-blur-md magazine-border shadow-2xl">
                   <h2 className="font-display text-5xl mb-6 leading-tight uppercase tracking-tighter">Begin your musical journey here.</h2>
                   <p className="text-sm leading-relaxed text-gray-600 font-light mb-8">
                     당신의 테마를 위 검색창에 입력하세요. <br/>
