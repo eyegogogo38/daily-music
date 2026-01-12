@@ -165,7 +165,7 @@ const App: React.FC = () => {
           <div className="py-20 animate-[fadeIn_1.5s_ease-out]">
             <div className="mb-20 relative">
               <img 
-                src="https://images.unsplash.com/photo-1514525253361-bee243870d2c?q=80&w=2000&auto=format&fit=crop" 
+                src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2000&auto=format&fit=crop" 
                 alt="Editorial" 
                 className="w-full h-[600px] object-cover grayscale brightness-75"
               />
